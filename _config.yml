@@ -19,8 +19,15 @@ description: >- # this means to ignore newlines until "baseurl:"
   Nothing to see here yet.
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
-# twitter_username: jekyllrb
-# github_username:  jekyll
+twitter_username: argonblue
+github_username:  tlyu
+permalink: "/blog/:categories/:year/:month/:day/:title/"
+header_pages:
+  - about.md
+
+# Theme settings
+minima:
+  date_format: "%Y-%m-%d"
 
 # Build settings
 markdown: kramdown
