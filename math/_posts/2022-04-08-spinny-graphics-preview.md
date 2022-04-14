@@ -17,5 +17,5 @@ Animation of the mechanics drawing a
 Simulated oscilloscope art of a modified
 [rose curve](https://en.wikipedia.org/wiki/Rose_(mathematics)):
 
-<video src="/assets/rose-test.mp4" autoplay=true loop=true>
+<video src="/assets/rose-test.mp4" muted autoplay loop playsinline>
 </video>
