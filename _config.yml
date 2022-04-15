@@ -16,7 +16,7 @@
 title: argonblue
 email: blog@argon.blue
 description: >- # this means to ignore newlines until "baseurl:"
-  Mostly writing about Rust and math
+  Mostly writing about Rust and math - Licensed under <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">CC-BY-SA 4.0</a>
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: argonblue
