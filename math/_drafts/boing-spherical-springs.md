@@ -2,7 +2,8 @@
 title: Boing! Drawing spherical springs with math
 katex: true
 ---
-I finally cracked the waveform synthesis of one of the classic laser show abstract effects: the spherical spring, rotating in three dimensions.
+
+I finally cracked the waveform synthesis of one of the classic laser show abstract effects: the spherical spring, rotating in three dimensions. (Here's an [animated GIF](/assets/boing.gif) if you're having trouble viewing the MP4 below.)
 
 <video autoplay controls loop muted playsinline>
 <source src="/assets/boing.mp4" encoding="video/mp4">
@@ -19,10 +20,12 @@ These are examples of oscilloscope music: music videos where all the visuals are
 It makes me want to go out and buy a modular synthesizer!
 
 The spherical spring looks so inherently three-dimensional.
-I thought I likely needed stuff like rotation matrices or quaternions to generate it.
-I had only seen them in later laser shows that were largely prerecorded, so I didn't know if there was a simple waveform synthesis behind them.
+I thought I needed stuff like rotation matrices or quaternions to generate it.
+I had only seen the effect in laser shows that were prerecorded, so I didn't know if there was a simple waveform synthesis behind them, or if they were recorded from a computer.
 [One of Fenderson's videos](https://www.youtube.com/watch?v=0u2ynhDfS40) seems to show a modular synthesizer programmed to draw the springs, so off we go!
-(I couldn't make out enough of the details of the synth programming in the video to replicate stuff, and I wanted a challenge anyway.)
+
+(I couldn't make out enough of the details of the synth programming in the video to replicate stuff, and I wanted a challenge anyway.
+It really helped to have the hint that it was possible.)
 
 ## Details
 
@@ -57,6 +60,12 @@ $$
 I've omitted the $z$-axis rotation above, for clarity.
 That's a total of three quadrature sine waves (four if you add one for $z$-axis rotation), a square wave synchronized to the sphere envelope, and a small number of multiplications and additions.
 That does seem within reach of the analog synthesizers back then.
+
+## Implementation
+
+I used [Matplotlib](https://matplotlib.org) to animate the effect.
+I wrote a cheap phosphor decay effect so that a moving object leaves a faint trail, enhancing the sense of motion.
+Code [here on GitHub](https://github.com/tlyu/spinny-math/blob/main/boing.py).
 
 {% capture details %}
 Here's an example of where I didn't realize the $y$-axis rotation needed to be in quadrature.
