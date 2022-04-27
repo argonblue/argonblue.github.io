@@ -34,8 +34,16 @@ function init_render() {
 
     const aspect = canvas.clientWidth/canvas.clientHeight;
     // const camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 100);
+    let halfwidth, halfheight;
+    if (aspect >= 1.0) {
+        halfwidth = 1.1 * aspect;
+        halfheight = 1.1;
+    } else {
+        halfwidth = 1.1;
+        halfheight = 1.1 / aspect;
+    }
     camera = new THREE.OrthographicCamera(
-        -1.1*aspect, 1.1*aspect, -1.1, 1.1, 0.1, 100);
+        -halfwidth, halfwidth, -halfheight, halfheight, 0.1, 100);
     camera.position.z = 2;
 
     scene = new THREE.Scene();
@@ -69,15 +77,31 @@ function init_geometry() {
 }
 
 function resizeToDisplaySize() {
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    let width = container.clientWidth;
+    let height = container.clientHeight;
+    if (width > window.innerWidth) {
+        width = window.innerWidth;
+    }
+    if (height > window.innerHeight) {
+        height = window.innerHeight;
+    }
     let size = new THREE.Vector2;
     renderer.getSize(size);
     if (width != size.x
         || height != size.y) {
             const aspect = width/height;
-            camera.left = -1.1 * aspect;
-            camera.right= 1.1 * aspect;
+            let halfwidth, halfheight;
+            if (aspect >= 1.0) {
+                halfwidth = 1.1 * aspect;
+                halfheight = 1.1;
+            } else {
+                halfwidth = 1.1;
+                halfheight = 1.1 / aspect;
+            }
+            camera.left = -halfwidth;
+            camera.right= halfwidth;
+            camera.bottom = -halfheight;
+            camera.top = halfheight;
             renderer.setSize(width, height, false);
             composer.setSize(width, height);
             camera.updateProjectionMatrix();
@@ -88,8 +112,10 @@ function resizeToDisplaySize() {
 function toggleFillWindow() {
     if (container.style.position != 'fixed') {
         container.style.position = 'fixed';
+        container.style.height = '100%';
     } else {
         container.style.position = 'relative';
+        delete container.style.height;
     }
 }
 
