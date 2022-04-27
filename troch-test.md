@@ -13,9 +13,9 @@ $$
 <style>
     .lil-gui { --name-width: 25%; }
     .lil-gui.root { position: absolute; top: 0px; right: 0px; }
-    div.gl-container { position: relative; top: 0px; left: 0px; width: 100%; height: 100%; z-index: 9000; }
+    div.gl-container { position: relative; top: 0px; left: 0px; width: 100%; z-index: 9000; }
     canvas.gl-container { display: block; width: 100%; }
-    @media (min-height: 480px) {
+    @media (min-height: 500px) {
       canvas.gl-container { min-height: 400px; }
     }
     @media (min-width: 600px) {
