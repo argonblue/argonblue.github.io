@@ -12,9 +12,15 @@ $$
 
 <style>
     .lil-gui { --name-width: 25%; }
-    .lil-gui.root { position: absolute; top: 0px; right: 0px; --width: 200px; }
+    .lil-gui.root { position: absolute; top: 0px; right: 0px; }
     div.gl-container { position: relative; top: 0px; left: 0px; width: 100%; height: 100%; z-index: 9000; }
-    canvas.gl-container { display: block; min-height: 400px; width: 100%; }
+    canvas.gl-container { display: block; width: 100%; }
+    @media (min-height: 480px) {
+      canvas.gl-container { min-height: 400px; }
+    }
+    @media (min-width: 600px) {
+      .lil-gui.root { --width: 200px; }
+    }
 </style>
 <div class="gl-container">
     <canvas class="gl-container" style="display: block"></canvas>
