@@ -6,3 +6,6 @@ _site
 # Bundler
 .bundle
 vendor
+
+# macOS
+.DS_Store
