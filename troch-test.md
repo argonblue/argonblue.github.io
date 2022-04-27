@@ -1,10 +1,12 @@
 ---
-title: More Test WebGL
+title: Interactive WebGL Trochoid Demo
 katex: true
 ---
 
 Interactive [WebGL](https://en.wikipedia.org/wiki/WebGL) demo of [hypotrochoids](https://en.wikipedia.org/wiki/Hypotrochoid).
 Uses [three.js](https://threejs.org/).
+Sources [on GitHub](https://github.com/argonblue/argonblue.github.io/blob/main/assets/troch-webgl.js).
+Equation, as [complex exponentials](https://en.wikipedia.org/wiki/Euler%27s_formula):
 
 $$
 z = r \exp(i \theta) + (1-r) \exp\left({b-a\over b} i \theta\right)
