@@ -4,7 +4,7 @@ import { EffectComposer } from 'https://unpkg.com/three@0.139/examples/jsm/postp
 import { RenderPass } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/RenderPass.js';
 import { AfterimagePass } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/AfterimagePass.js';
 import { GUI } from 'https://unpkg.com/three@0.139/examples/jsm/libs/lil-gui.module.min.js';
-import { Line2 } from 'https://unpkg.com/three@0.139/examples/jsm/lines/Line2.js';
+// import { Line2 } from 'https://unpkg.com/three@0.139/examples/jsm/lines/Line2.js';
 // import { LineGeometry } from 'https://unpkg.com/three@0.139/examples/jsm/lines/LineGeometry.js';
 // import { LineMaterial } from 'https://unpkg.com/three@0.139/examples/jsm/lines/LineMaterial.js';
 
@@ -17,7 +17,7 @@ let scene;
 let composer;
 let afterimagePass;
 
-const nsamp = 10001;
+const nsamp = 1001;
 const verts = new Float32Array(nsamp * 3);
 
 const params = {
@@ -31,20 +31,44 @@ const params = {
 };
 
 let line;
+let mesh;
 let material;
 
 const vs = `
 #define CS(x) (vec2(cos(x), sin(x)))
+
 uniform float fr, rph;
 uniform float a, b, bph;
-void main() {
-    float th = position.x;
+uniform float linewidth;
+attribute vec3 seg;
+
+vec2 curvepoint(float th) {
     float r = cos(fr*th+rph);
     r = 1. - r*r;
-    vec2 v = mix(CS(a*th), CS(b*th+bph), r);
+    return mix(CS(a*th), CS(b*th+bph), r);
+}
+
+vec2 rect_tri(vec2 p[2]) {
+    vec2 d = normalize(p[1]-p[0]);
+    vec2 n = vec2(-d.y, d.x);
+    bvec2 sel = equal(vec2(0, 1), position.yy);
+    mat3 m = mat3(
+        vec3(p[0], 0),
+        vec3(p[1], 0),
+        vec3(n * .5*linewidth, 0)
+    );
+    return (m * vec3(sel, position.x)).xy;
+}
+
+void main() {
+    vec2 p[2];
+    p[0] = curvepoint(seg.x);
+    p[1] = curvepoint(seg.y);
+    vec2 v = rect_tri(p);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(v, 0, 1);
 }
 `;
+
 const fs = `
 void main() {
     gl_FragColor = vec4(.1, .8, 1, 1);
@@ -53,7 +77,6 @@ void main() {
 function init_render() {
     renderer = new THREE.WebGLRenderer({canvas});
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
-    // renderer.setPixelRatio(window.devicePixelRatio);
 
     stats = new Stats();
     container.appendChild(stats.dom);
@@ -82,24 +105,40 @@ function init_render() {
 }
 
 function init_geometry() {
-    const geometry = new THREE.BufferGeometry();
+    const geometry = new THREE.InstancedBufferGeometry();
     for (let i = 0; i < nsamp; i++) {
-        const t = i/(nsamp-1);
-        verts[3 * i] = 2*Math.PI*t;
-        verts[3 * i + 1] = 0;
+        const t0 = i/(nsamp-1);
+        const t1 = (i+1)/(nsamp-1);
+        verts[3 * i] = 2*Math.PI*t0;
+        verts[3 * i + 1] = 2*Math.PI*t1;
         verts[3 * i + 2] = 0;
     }
-    geometry.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+    const qverts = [
+        -1, 0, 0,
+        1, 0, 0,
+        1, 1, 0,
+        -1, 1, 0
+    ];
+    const indices = [
+        0, 2, 1, 0, 3, 2
+    ];
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(qverts, 3));
+    geometry.setAttribute('seg', new THREE.InstancedBufferAttribute(verts, 3, false, 1));
+    geometry.setIndex(indices);
     const uniforms = {
         fr: { value: 0.0 },
         rph: { value: 0.0 },
         a: { value: 0.0 },
         b: { value: 0.0 },
-        bph: { value: 0.0 }
+        bph: { value: 0.0 },
+        linewidth: { value: 0.01 }
     };
     material = new THREE.ShaderMaterial({uniforms, vertexShader: vs, fragmentShader: fs});
-    const line = new THREE.Line(geometry, material);
+    line = new THREE.Line(geometry, material);
+    line.visible = false;
+    mesh = new THREE.Mesh(geometry, material);
     scene.add(line);
+    scene.add(mesh);
 }
 
 function resizeToDisplaySize() {
@@ -118,8 +157,7 @@ function resizeToDisplaySize() {
     }
     let size = new THREE.Vector2;
     renderer.getSize(size);
-    if (width != size.x
-        || height != size.y) {
+    if (width != size.x || height != size.y) {
             const aspect = width/height;
             let halfwidth, halfheight;
             if (aspect >= 1.0) {
@@ -228,6 +266,13 @@ class Troch {
     }
     get fa() { return this.osc_a.f; }
     get fb() { return this.osc_b.f; }
+    get wireframe() { return line.visible; }
+    set wireframe(val) {
+        line.visible = val;
+        mesh.visible = !val;
+        line.needsUpdate = true;
+        mesh.needsUpdate = true;
+    }
 }
 
 function init_gui() {
@@ -250,7 +295,9 @@ function init_gui() {
     const rendergui = gui.addFolder('Rendering');
     rendergui.add(afterimagePass.uniforms['damp'], 'value', 0, 1, 0.01)
         .name('trails');
-//    rendergui.add(material, 'linewidth', 0.001, 0.02, 0.001);
+    rendergui.add(material.uniforms.linewidth, 'value', 0.005, 0.1, 0.001)
+        .name('linewidth');
+    rendergui.add(troch, 'wireframe');
     rendergui.add(params, 'devicePixels');
     rendergui.close();
     gui.add(gui, 'reset');
