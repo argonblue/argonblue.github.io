@@ -4,9 +4,6 @@ import { EffectComposer } from 'https://unpkg.com/three@0.139/examples/jsm/postp
 import { RenderPass } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/RenderPass.js';
 import { AfterimagePass } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/AfterimagePass.js';
 import { GUI } from 'https://unpkg.com/three@0.139/examples/jsm/libs/lil-gui.module.min.js';
-// import { Line2 } from 'https://unpkg.com/three@0.139/examples/jsm/lines/Line2.js';
-// import { LineGeometry } from 'https://unpkg.com/three@0.139/examples/jsm/lines/LineGeometry.js';
-// import { LineMaterial } from 'https://unpkg.com/three@0.139/examples/jsm/lines/LineMaterial.js';
 
 const container = document.querySelector("div.gl-container");
 const canvas = document.querySelector("canvas.gl-container");
@@ -47,16 +44,17 @@ vec2 curvepoint(float th) {
     r = 1. - r*r;
     return mix(CS(a*th), CS(b*th+bph), r);
 }
+
 /*
  * Encoding:
  *
  * position.x multiplies n1
  * position.y determines base point: p0 vs p1
- * position.z is for the bevel
+ * abs(position.z) picks n1 or n2 for the bevel
+ * sign(position.z) picks direction in bevel
  *
  * sign(cross(n2, n1)) determines which side bevel goes on.
  */
-
 vec2 rect_tri(vec2 p[3]) {
     mat2 rot90 = mat2(0, 1, -1, 0);
     vec2 d1 = normalize(p[1]-p[0]);
@@ -66,8 +64,12 @@ vec2 rect_tri(vec2 p[3]) {
     float s = sign(cross(vec3(n2, 0), vec3(n1, 0)).z);
 
     bvec2 psel = equal(vec2(0, 1), position.yy);
-    bvec2 nsel = equal(vec2(-1, 1), s*position.zz);
-    vec2 nv = vec2(position.x, 0) + s*vec2(nsel);
+    bvec2 nsel = equal(vec2(1, 2), abs(position.zz));
+    if (s < 0.) {
+        // Swap normals to keep front-facing
+        nsel = not(nsel);
+    }
+    vec2 nv = vec2(position.x, 0) + s*vec2(nsel)*sign(position.z);
     mat4 m = mat4(
         vec4(p[0], 0, 0),
         vec4(p[1], 0, 0),
@@ -137,6 +139,12 @@ function set_segs(geometry, nsamp) {
     geometry.instanceCount = nsamp;
 }
 
+/*
+ * Instanced geometry, where each instance is a line segment,
+ * along with the bevel triangle for the joint.
+ *
+ * The actual instance data is the angle for drawing the trochoid.
+ */
 function init_geometry() {
     geometry = new THREE.InstancedBufferGeometry();
     const qverts = [
@@ -144,9 +152,9 @@ function init_geometry() {
         1, 0, 0,
         1, 1, 0,
         -1, 1, 0,
+        0, 1, 2,
         0, 1, 1,
-        0, 1, -1,
-        0, 1, 0
+        0, 1, -2
     ];
     const indices = [
         0, 2, 1, 0, 3, 2, 4, 5, 6
@@ -176,38 +184,32 @@ function init_geometry() {
 function resizeToDisplaySize() {
     let width = container.clientWidth;
     let height = container.clientHeight;
-    if (width > window.innerWidth) {
-        width = window.innerWidth;
-    }
-    if (height > window.innerHeight) {
-        height = window.innerHeight;
-    }
+    width = Math.min(width, window.innerWidth);
+    height = Math.min(height, window.innerHeight);
     if (params.devicePixels) {
         const _pixelRatio = window.devicePixelRatio;
         width *= _pixelRatio;
         height *= _pixelRatio;
     }
-    let size = new THREE.Vector2;
-    renderer.getSize(size);
-    if (width != size.x || height != size.y) {
-            const aspect = width/height;
-            let halfwidth, halfheight;
-            if (aspect >= 1.0) {
-                halfwidth = 1.1 * aspect;
-                halfheight = 1.1;
-            } else {
-                halfwidth = 1.1;
-                halfheight = 1.1 / aspect;
-            }
-            camera.left = -halfwidth;
-            camera.right= halfwidth;
-            camera.bottom = -halfheight;
-            camera.top = halfheight;
-            renderer.setSize(width, height, false);
-            composer.setSize(width, height);
-            camera.updateProjectionMatrix();
-            console.log(width, height, size);
-        }
+    const size = renderer.getSize(new THREE.Vector2);
+    if (width == size.x && height == size.y) {
+        return;
+    }
+    const aspect = width/height;
+    let halfwidth = 1.1, halfheight = 1.1;
+    if (aspect >= 1.0) {
+        halfwidth *= aspect;
+    } else {
+        halfheight /= aspect;
+    }
+    camera.left = -halfwidth;
+    camera.right= halfwidth;
+    camera.bottom = -halfheight;
+    camera.top = halfheight;
+    renderer.setSize(width, height, false);
+    composer.setSize(width, height);
+    camera.updateProjectionMatrix();
+    console.log(width, height, size);
 }
 
 function toggleFillWindow() {
@@ -311,8 +313,6 @@ class Troch {
         if (this._nsamp == val) { return; }
         this._nsamp = val;
         set_segs(geometry, val);
-        line.geometry.needsUpdate = true;
-        mesh.geometry.needsUpdate = true;
     }
 }
 
@@ -336,10 +336,10 @@ function init_gui() {
     const rendergui = gui.addFolder('Rendering');
     rendergui.add(afterimagePass.uniforms['damp'], 'value', 0, 1, 0.01)
         .name('trails');
-    rendergui.add(material.uniforms.linewidth, 'value', 0.005, 0.1, 0.001)
+    rendergui.add(material.uniforms.linewidth, 'value', 0.005, 0.2, 0.001)
         .name('linewidth');
+    rendergui.add(troch, 'nsamp', 30, maxsamp, 10);
     rendergui.add(troch, 'wireframe');
-    rendergui.add(troch, 'nsamp', 50, maxsamp, 10);
     rendergui.add(params, 'devicePixels');
     rendergui.close();
     gui.add(gui, 'reset');
@@ -348,7 +348,6 @@ function init_gui() {
 
 function animate() {
     resizeToDisplaySize();
-    // line.geometry.attributes.position.needsUpdate = true;
     troch.update();
     composer.render(scene, camera);
     stats.update();
