@@ -17,8 +17,8 @@ let scene;
 let composer;
 let afterimagePass;
 
-const nsamp = 1001;
-const verts = new Float32Array(nsamp * 3);
+let geometry;
+const maxsamp = 10000;
 
 const params = {
     _devicePixels: false,
@@ -47,24 +47,42 @@ vec2 curvepoint(float th) {
     r = 1. - r*r;
     return mix(CS(a*th), CS(b*th+bph), r);
 }
+/*
+ * Encoding:
+ *
+ * position.x multiplies n1
+ * position.y determines base point: p0 vs p1
+ * position.z is for the bevel
+ *
+ * sign(cross(n2, n1)) determines which side bevel goes on.
+ */
 
-vec2 rect_tri(vec2 p[2]) {
-    vec2 d = normalize(p[1]-p[0]);
-    vec2 n = vec2(-d.y, d.x);
-    bvec2 sel = equal(vec2(0, 1), position.yy);
-    mat3 m = mat3(
-        vec3(p[0], 0),
-        vec3(p[1], 0),
-        vec3(n * .5*linewidth, 0)
+vec2 rect_tri(vec2 p[3]) {
+    mat2 rot90 = mat2(0, 1, -1, 0);
+    vec2 d1 = normalize(p[1]-p[0]);
+    vec2 n1 = rot90*d1;
+    vec2 d2 = normalize(p[2]-p[1]);
+    vec2 n2 = rot90*d2;
+    float s = sign(cross(vec3(n2, 0), vec3(n1, 0)).z);
+
+    bvec2 psel = equal(vec2(0, 1), position.yy);
+    bvec2 nsel = equal(vec2(-1, 1), s*position.zz);
+    vec2 nv = vec2(position.x, 0) + s*vec2(nsel);
+    mat4 m = mat4(
+        vec4(p[0], 0, 0),
+        vec4(p[1], 0, 0),
+        vec4(n1 * .5*linewidth, 0, 0),
+        vec4(n2 * .5*linewidth, 0, 0)
     );
-    return (m * vec3(sel, position.x)).xy;
+    return (m * vec4(psel, nv)).xy;
 }
 
 void main() {
-    vec2 p[2];
+    vec2 p[3];
     p[0] = curvepoint(seg.x);
     p[1] = curvepoint(seg.y);
-    vec2 v = rect_tri(p);
+    p[2] = curvepoint(seg.z);
+    vec2 v = rect_tri(p) + normalize(vec2(1e-30));
     gl_Position = projectionMatrix * modelViewMatrix * vec4(v, 0, 1);
 }
 `;
@@ -104,26 +122,40 @@ function init_render() {
     composer.addPass(afterimagePass);
 }
 
-function init_geometry() {
-    const geometry = new THREE.InstancedBufferGeometry();
+function set_segs(geometry, nsamp) {
+    const verts = new Float32Array(nsamp * 3);
     for (let i = 0; i < nsamp; i++) {
         const t0 = i/(nsamp-1);
         const t1 = (i+1)/(nsamp-1);
+        const t2 = (i+2)/(nsamp-1);
         verts[3 * i] = 2*Math.PI*t0;
         verts[3 * i + 1] = 2*Math.PI*t1;
-        verts[3 * i + 2] = 0;
+        verts[3 * i + 2] = 2*Math.PI*t2;
     }
+    geometry.attributes.seg.set(verts);
+    geometry.attributes.seg.needsUpdate = true;
+    geometry.instanceCount = nsamp;
+}
+
+function init_geometry() {
+    geometry = new THREE.InstancedBufferGeometry();
     const qverts = [
         -1, 0, 0,
         1, 0, 0,
         1, 1, 0,
-        -1, 1, 0
+        -1, 1, 0,
+        0, 1, 1,
+        0, 1, -1,
+        0, 1, 0
     ];
     const indices = [
-        0, 2, 1, 0, 3, 2
+        0, 2, 1, 0, 3, 2, 4, 5, 6
     ];
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(qverts, 3));
-    geometry.setAttribute('seg', new THREE.InstancedBufferAttribute(verts, 3, false, 1));
+    geometry.setAttribute('seg', new THREE.InstancedBufferAttribute(
+        new Float32Array(3 * maxsamp),
+        3, false, 1));
+    set_segs(geometry, maxsamp);
     geometry.setIndex(indices);
     const uniforms = {
         fr: { value: 0.0 },
@@ -220,6 +252,7 @@ class Troch {
         this._a = a;
         this._b = b;
         this._bend = bend;
+        this._nsamp = maxsamp;
 
         this.osc_a = new Osc();
         this.osc_b = new Osc();
@@ -273,6 +306,14 @@ class Troch {
         line.needsUpdate = true;
         mesh.needsUpdate = true;
     }
+    get nsamp() { return this._nsamp; }
+    set nsamp(val) {
+        if (this._nsamp == val) { return; }
+        this._nsamp = val;
+        set_segs(geometry, val);
+        line.geometry.needsUpdate = true;
+        mesh.geometry.needsUpdate = true;
+    }
 }
 
 function init_gui() {
@@ -298,6 +339,7 @@ function init_gui() {
     rendergui.add(material.uniforms.linewidth, 'value', 0.005, 0.1, 0.001)
         .name('linewidth');
     rendergui.add(troch, 'wireframe');
+    rendergui.add(troch, 'nsamp', 50, maxsamp, 10);
     rendergui.add(params, 'devicePixels');
     rendergui.close();
     gui.add(gui, 'reset');
