@@ -37,12 +37,20 @@ const vs = `
 uniform float fr, rph;
 uniform float a, b, bph;
 uniform float linewidth;
+uniform bool stepwise;
 attribute vec3 seg;
 
+// Actual trochoid curve point calculation
 vec2 curvepoint(float th) {
-    float r = cos(fr*th+rph);
+    float fr_ = fr, b_ = b;
+    if (stepwise) {
+        // Avoid gaps by rounding to int
+        fr_ = floor(fr);
+        b_ = floor(b);
+    }
+    float r = cos(fr_*th+rph);
     r = 1. - r*r;
-    return mix(CS(a*th), CS(b*th+bph), r);
+    return mix(CS(a*th), CS(b_*th+bph), r);
 }
 
 /*
@@ -84,7 +92,7 @@ void main() {
     p[0] = curvepoint(seg.x);
     p[1] = curvepoint(seg.y);
     p[2] = curvepoint(seg.z);
-    vec2 v = rect_tri(p) + normalize(vec2(1e-30));
+    vec2 v = rect_tri(p);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(v, 0, 1);
 }
 `;
@@ -94,6 +102,17 @@ void main() {
     gl_FragColor = vec4(.1, .8, 1, 1);
 }`;
 
+function camera_aspect(width, height) {
+    const aspect = width / height;
+    let halfwidth = 1.1, halfheight = 1.1;
+    if (aspect >= 1.0) {
+        halfwidth *= aspect;
+    } else {
+        halfheight /= aspect;
+    }
+    return [halfwidth, halfheight];
+}
+
 function init_render() {
     renderer = new THREE.WebGLRenderer({canvas});
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
@@ -102,16 +121,9 @@ function init_render() {
     container.appendChild(stats.dom);
     stats.dom.style.position = 'absolute'; // hack because it has no id or class name
 
-    const aspect = canvas.clientWidth/canvas.clientHeight;
     // const camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 100);
-    let halfwidth, halfheight;
-    if (aspect >= 1.0) {
-        halfwidth = 1.1 * aspect;
-        halfheight = 1.1;
-    } else {
-        halfwidth = 1.1;
-        halfheight = 1.1 / aspect;
-    }
+    const [halfwidth, halfheight] = camera_aspect(
+        canvas.clientWidth, canvas.clientHeight);
     camera = new THREE.OrthographicCamera(
         -halfwidth, halfwidth, -halfheight, halfheight, 0.1, 100);
     camera.position.z = 2;
@@ -159,10 +171,10 @@ function init_geometry() {
     const indices = [
         0, 2, 1, 0, 3, 2, 4, 5, 6
     ];
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(qverts, 3));
+    geometry.setAttribute('position',
+        new THREE.Float32BufferAttribute(qverts, 3));
     geometry.setAttribute('seg', new THREE.InstancedBufferAttribute(
-        new Float32Array(3 * maxsamp),
-        3, false, 1));
+        new Float32Array(3 * maxsamp), 3, false, 1));
     set_segs(geometry, maxsamp);
     geometry.setIndex(indices);
     const uniforms = {
@@ -171,9 +183,13 @@ function init_geometry() {
         a: { value: 0.0 },
         b: { value: 0.0 },
         bph: { value: 0.0 },
-        linewidth: { value: 0.01 }
+        linewidth: { value: 0.01 },
+        stepwise: { value: true }
     };
-    material = new THREE.ShaderMaterial({uniforms, vertexShader: vs, fragmentShader: fs});
+    material = new THREE.ShaderMaterial({
+        uniforms,
+        vertexShader: vs, fragmentShader: fs
+    });
     line = new THREE.Line(geometry, material);
     line.visible = false;
     mesh = new THREE.Mesh(geometry, material);
@@ -195,13 +211,7 @@ function resizeToDisplaySize() {
     if (width == size.x && height == size.y) {
         return;
     }
-    const aspect = width/height;
-    let halfwidth = 1.1, halfheight = 1.1;
-    if (aspect >= 1.0) {
-        halfwidth *= aspect;
-    } else {
-        halfheight /= aspect;
-    }
+    const [halfwidth, halfheight] = camera_aspect(width, height);
     camera.left = -halfwidth;
     camera.right= halfwidth;
     camera.bottom = -halfheight;
@@ -300,7 +310,9 @@ class Troch {
         this.setf();
     }
     get fa() { return this.osc_a.f; }
+    set fa(_) {}
     get fb() { return this.osc_b.f; }
+    set fb(_) {}
     get wireframe() { return line.visible; }
     set wireframe(val) {
         line.visible = val;
@@ -319,6 +331,9 @@ class Troch {
 function init_gui() {
     const gui = new GUI({container});
     const agui = gui.addFolder('Animation');
+    const cgui = gui.addFolder('Curve');
+    const rendergui = gui.addFolder('Rendering');
+
     agui.add(troch, 'bend', 0, 0.1, 0.001).name('spin');
     agui.add(troch.osc_b, 'ph', 0, 2*Math.PI, 0.001)
         .name('spin ph.').listen();
@@ -326,24 +341,25 @@ function init_gui() {
     agui.add(troch.osc_r, 'ph', 0, 2*Math.PI, 0.0001)
         .name('breathe ph.').listen();
 
-    const cgui = gui.addFolder('Curve');
     cgui.add(troch, 'a', -13, 13, 1);
     cgui.add(troch, 'b', 1, 11, 1);
     cgui.add(troch, 'fa').listen();
     cgui.add(troch, 'fb').listen();
-    cgui.close();
 
-    const rendergui = gui.addFolder('Rendering');
     rendergui.add(afterimagePass.uniforms['damp'], 'value', 0, 1, 0.01)
         .name('trails');
     rendergui.add(material.uniforms.linewidth, 'value', 0.005, 0.2, 0.001)
         .name('linewidth');
     rendergui.add(troch, 'nsamp', 30, maxsamp, 10);
+    rendergui.add(material.uniforms.stepwise, 'value').name('stepwise');
     rendergui.add(troch, 'wireframe');
     rendergui.add(params, 'devicePixels');
-    rendergui.close();
+
     gui.add(gui, 'reset');
     gui.add({'toggle expand': toggleFillWindow}, 'toggle expand');
+
+    cgui.close();
+    rendergui.close();
 }
 
 function animate() {
