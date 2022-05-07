@@ -24,7 +24,7 @@ There are no implicit arithmetic conversions for operators, for example.
 Pointers don't exist.
 In GLSL ES version 1.00 (used in the website above), array indices must be constants or loop variables (which themselves are quite restricted).
 
-If I want to index an array using a variable, even if the variable is the output of a modulus operation, and it's therefore trivially provable that it won't overflow the array, I still have to write a trivial loop to convince the compiler that it's okay.
+If I want to index an array using a variable, even if the variable is the output of a modulus operation, and it's therefore easily proven that it won't overflow the array, I still have to write a trivial loop to convince the compiler that it's okay.
 I can appreciate the design tradeoffs that led to this kind of restriction.
 These shader programs are compiled by the graphics driver, often interactively, so the amount of static program analysis they can do is limited.
 
