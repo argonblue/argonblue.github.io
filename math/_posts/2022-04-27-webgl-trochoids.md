@@ -1,6 +1,7 @@
 ---
 title: Interactive WebGL Trochoid Demo
 katex: true
+threejs: true
 ---
 
 I wrote an interactive [WebGL](https://en.wikipedia.org/wiki/WebGL) demo of [hypotrochoids](https://en.wikipedia.org/wiki/Hypotrochoid).
@@ -27,15 +28,7 @@ $$
 <div class="gl-container">
     <canvas class="gl-container" style="display: block"></canvas>
 </div>
-<script async src="https://unpkg.com/es-module-shims@1.5.4/dist/es-module-shims.js"></script>
-<script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.139/build/three.module.js"
-    }
-  }
-</script>
-<script src="https://unpkg.com/mathjs@10.5.0/lib/browser/math.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@10.5.0/lib/browser/math.js"></script>
 <script type="module" src="/assets/troch-webgl.js"></script>
 
 ## Details

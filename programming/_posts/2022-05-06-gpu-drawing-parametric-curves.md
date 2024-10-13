@@ -1,5 +1,6 @@
 ---
 title: GPU drawing of parametric curves
+threejs: true
 ---
 
 At the heart of modern 3D rendering software is a *vertex shader*: a procedure on the GPU doing hardware-accelerated linear algebra to project the many vertices of polygons in the 3D scene onto a 2D viewing plane, and per-vertex lighting calculations, possibly millions of times per second.
@@ -58,15 +59,7 @@ Still using [three.js](https://threejs.org/), but also using [ShaderMaterial](ht
 <div class="gl-container">
     <canvas class="gl-container" style="display: block"></canvas>
 </div>
-<script async src="https://unpkg.com/es-module-shims@1.5.4/dist/es-module-shims.js"></script>
-<script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.139/build/three.module.js"
-    }
-  }
-</script>
-<script src="https://unpkg.com/mathjs@10.5.0/lib/browser/math.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mathjs@10.5.0/lib/browser/math.js"></script>
 <script type="module" src="/assets/troch-vs.js"></script>
 
 Among other things, I relearned that drawing (thick) lines is hard, especially when they're animated curvy lines with loops and cusps, like you get with trochoids.

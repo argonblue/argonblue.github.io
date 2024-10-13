@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import Stats from "https://unpkg.com/three@0.139/examples/jsm/libs/stats.module.js";
-import { EffectComposer } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/RenderPass.js';
-import { AfterimagePass } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/AfterimagePass.js';
-import { GUI } from 'https://unpkg.com/three@0.139/examples/jsm/libs/lil-gui.module.min.js';
+import Stats from "three/addons/libs/stats.module.js";
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 const container = document.querySelector("div.gl-container");
 const canvas = document.querySelector("canvas.gl-container");

@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import Stats from "https://unpkg.com/three@0.139/examples/jsm/libs/stats.module.js";
-import { EffectComposer } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/RenderPass.js';
-import { AfterimagePass } from 'https://unpkg.com/three@0.139/examples/jsm/postprocessing/AfterimagePass.js';
-import { GUI } from 'https://unpkg.com/three@0.139/examples/jsm/libs/lil-gui.module.min.js';
-import { Line2 } from 'https://unpkg.com/three@0.139/examples/jsm/lines/Line2.js';
-import { LineGeometry } from 'https://unpkg.com/three@0.139/examples/jsm/lines/LineGeometry.js';
-import { LineMaterial } from 'https://unpkg.com/three@0.139/examples/jsm/lines/LineMaterial.js';
+import Stats from "three/addons/libs/stats.module.js";
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 
 const container = document.querySelector("div.gl-container");
 const canvas = document.querySelector("canvas.gl-container");
